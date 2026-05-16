@@ -234,7 +234,7 @@ export default function DashboardPage() {
                 transition: 'all 0.2s ease'
               }} className="hover:border-red-200 hover:bg-red-50/30">
                 <div>
-                  <span style={{ block: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#0f172a' }}>{product.name}</span>
+                  <span style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#0f172a' }}>{product.name}</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>SKU: {product.sku}</span>
                 </div>
                 <span style={{ 
