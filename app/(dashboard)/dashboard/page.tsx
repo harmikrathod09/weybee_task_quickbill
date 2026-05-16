@@ -170,7 +170,7 @@ export default function DashboardPage() {
               <Tooltip 
                 contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
                 itemStyle={{ fontWeight: '700' }}
-                formatter={(value: number) => `₹${value.toLocaleString()}`}
+                formatter={(value: any) => `₹${Number(value || 0).toLocaleString()}`}
               />
               <Area type="monotone" dataKey="revenue" name="Gross Revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
               <Area type="monotone" dataKey="earnings" name="Net Earnings" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorEarnings)" />
