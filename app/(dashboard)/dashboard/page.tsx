@@ -15,6 +15,9 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 interface Stats {
   totalSales: number;
+  totalRevenue: number;
+  totalTax: number;
+  totalDiscount: number;
   orderCount: number;
   productCount: number;
   lowStockCount: number;
@@ -26,40 +29,58 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [rawData, setRawData] = useState<any>(null);
+  const [timeframe, setTimeframe] = useState<'day' | 'month'>('day');
+
+  const updateChartData = (data: any, type: 'day' | 'month') => {
+    if (type === 'day') {
+      const groupedSales: Record<string, any> = {};
+      const days = 7;
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        groupedSales[d.toLocaleDateString('en-US', { weekday: 'short' })] = { revenue: 0, earnings: 0 };
+      }
+
+      data.dailySales.forEach((order: any) => {
+        const day = new Date(order.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
+        if (groupedSales[day] !== undefined) {
+          groupedSales[day].revenue += (order.subtotal || order.totalAmount);
+          groupedSales[day].earnings += order.totalAmount;
+        }
+      });
+
+      setChartData(Object.keys(groupedSales).map(key => ({
+        name: key,
+        revenue: groupedSales[key].revenue,
+        earnings: groupedSales[key].earnings
+      })));
+    } else {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const formatted = data.monthlySales.map((m: any) => ({
+        name: `${months[m._id.month - 1]}`,
+        revenue: m.revenue,
+        earnings: m.earnings
+      })).reverse();
+      setChartData(formatted);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/stats')
       .then(res => res.json())
       .then(data => {
         setStats(data);
-        
-        // Group sales by date for the chart
-        const groupedSales: Record<string, number> = {};
-        const days = 7;
-        
-        // Initialize last 7 days with 0
-        for (let i = days - 1; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          groupedSales[d.toLocaleDateString('en-US', { weekday: 'short' })] = 0;
-        }
-
-        data.chartSales.forEach((order: any) => {
-          const day = new Date(order.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
-          if (groupedSales[day] !== undefined) {
-            groupedSales[day] += order.totalAmount;
-          }
-        });
-
-        const formattedChartData = Object.keys(groupedSales).map(key => ({
-          name: key,
-          revenue: groupedSales[key]
-        }));
-
-        setChartData(formattedChartData);
+        setRawData(data);
+        updateChartData(data, 'day');
         setLoading(false);
       });
   }, []);
+
+  const handleTimeframeChange = (type: 'day' | 'month') => {
+    setTimeframe(type);
+    if (rawData) updateChartData(rawData, type);
+  };
 
   if (loading) {
     return (
@@ -82,51 +103,35 @@ export default function DashboardPage() {
       </header>
 
       {/* KPI Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="card" style={{ padding: '1.5rem', borderTop: '4px solid #3b82f6', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Revenue</p>
-            <div style={{ padding: '0.5rem', background: '#eff6ff', borderRadius: '0.75rem', color: '#3b82f6' }}>
-              <TrendingUp size={20} />
-            </div>
-          </div>
-          <h3 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a' }}>₹{stats?.totalSales.toLocaleString()}</h3>
-          <p style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: '600', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <ArrowUpRight size={14} /> +12.5% from last week
-          </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+        <div className="card" style={{ padding: '1.25rem', borderTop: '4px solid #3b82f6', background: 'white' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Total Earnings</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>₹{stats?.totalSales.toLocaleString()}</h3>
+          <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginTop: '0.25rem' }}>Net after taxes & discounts</p>
         </div>
 
-        <div className="card" style={{ padding: '1.5rem', borderTop: '4px solid #10b981', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Orders</p>
-            <div style={{ padding: '0.5rem', background: '#ecfdf5', borderRadius: '0.75rem', color: '#10b981' }}>
-              <History size={20} />
-            </div>
-          </div>
-          <h3 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a' }}>{stats?.orderCount}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>Processed successfully</p>
+        <div className="card" style={{ padding: '1.25rem', borderTop: '4px solid #8b5cf6', background: 'white' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Gross Revenue</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>₹{stats?.totalRevenue.toLocaleString()}</h3>
+          <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginTop: '0.25rem' }}>Pre-tax product sales</p>
         </div>
 
-        <div className="card" style={{ padding: '1.5rem', borderTop: '4px solid #f59e0b', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Products</p>
-            <div style={{ padding: '0.5rem', background: '#fef3c7', borderRadius: '0.75rem', color: '#f59e0b' }}>
-              <Package size={20} />
-            </div>
-          </div>
-          <h3 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a' }}>{stats?.productCount}</h3>
-          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>Currently in inventory</p>
+        <div className="card" style={{ padding: '1.25rem', borderTop: '4px solid #f59e0b', background: 'white' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Tax Collected</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f59e0b' }}>₹{stats?.totalTax.toLocaleString()}</h3>
+          <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginTop: '0.25rem' }}>Total GST liability</p>
         </div>
 
-        <div className="card" style={{ padding: '1.5rem', borderTop: '4px solid #ef4444', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Low Stock</p>
-            <div style={{ padding: '0.5rem', background: '#fee2e2', borderRadius: '0.75rem', color: '#ef4444' }}>
-              <AlertTriangle size={20} />
-            </div>
-          </div>
-          <h3 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a' }}>{stats?.lowStockCount}</h3>
-          <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '500', marginTop: '0.5rem' }}>Items require attention</p>
+        <div className="card" style={{ padding: '1.25rem', borderTop: '4px solid #ef4444', background: 'white' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Discounts Given</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ef4444' }}>₹{stats?.totalDiscount.toLocaleString()}</h3>
+          <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginTop: '0.25rem' }}>Value subtracted from bills</p>
+        </div>
+
+        <div className="card" style={{ padding: '1.25rem', borderTop: '4px solid #10b981', background: 'white' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Orders</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>{stats?.orderCount}</h3>
+          <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginTop: '0.25rem' }}>Completed transactions</p>
         </div>
       </div>
 
@@ -137,9 +142,13 @@ export default function DashboardPage() {
             <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--sidebar)' }}>Revenue Overview</h3>
             <p style={{ color: 'var(--secondary)', fontSize: '0.875rem' }}>Daily sales performance for the last 7 days</p>
           </div>
-          <select style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--sidebar)', fontWeight: '500', outline: 'none' }}>
-            <option>Last 7 Days</option>
-            <option>This Month</option>
+          <select 
+            value={timeframe}
+            onChange={(e) => handleTimeframeChange(e.target.value as 'day' | 'month')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--border)', background: 'var(--input)', color: 'var(--sidebar)', fontWeight: '500', outline: 'none' }}
+          >
+            <option value="day">Day wise (7 Days)</option>
+            <option value="month">Month wise (6 Months)</option>
           </select>
         </div>
         <div style={{ height: '300px', width: '100%' }}>
@@ -147,6 +156,10 @@ export default function DashboardPage() {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                 </linearGradient>
@@ -156,10 +169,11 @@ export default function DashboardPage() {
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `₹${value}`} />
               <Tooltip 
                 contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                itemStyle={{ color: '#0f172a', fontWeight: '700' }}
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                itemStyle={{ fontWeight: '700' }}
+                formatter={(value: number) => `₹${value.toLocaleString()}`}
               />
-              <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="revenue" name="Gross Revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="earnings" name="Net Earnings" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorEarnings)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

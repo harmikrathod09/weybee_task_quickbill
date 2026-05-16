@@ -42,10 +42,10 @@ export default function ReportsPage() {
     let csvContent = "data:text/csv;charset=utf-8,";
 
     if (type === 'sales') {
-      csvContent += "Invoice No,Date,Total Amount,Items Count,Status\n";
+      csvContent += "Invoice No,Date,Subtotal,Discount,Tax,Total Amount,Items Count,Status\n";
       data.forEach(order => {
         const date = new Date(order.createdAt).toLocaleDateString();
-        const row = `${order.invoiceNumber},${date},${order.totalAmount},${order.items.length},${order.status}`;
+        const row = `${order.invoiceNumber},${date},${order.subtotal || order.totalAmount},${order.discountAmount || 0},${order.taxAmount || 0},${order.totalAmount},${order.items.length},${order.status}`;
         csvContent += row + "\n";
       });
     } else {
@@ -97,14 +97,32 @@ export default function ReportsPage() {
             </div>
             
             <div style={{ marginBottom: '2rem', padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--secondary)' }}>Total Orders:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                <span style={{ color: 'var(--secondary)' }}>Orders:</span>
                 <span style={{ fontWeight: '700' }}>{salesData.length}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--secondary)' }}>Total Revenue:</span>
-                <span style={{ fontWeight: '800', color: '#10b981' }}>
-                  ₹{salesData.reduce((sum: number, order: any) => sum + order.totalAmount, 0).toLocaleString()}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                <span style={{ color: 'var(--secondary)' }}>Gross Revenue:</span>
+                <span style={{ fontWeight: '700' }}>
+                  ₹{salesData.reduce((sum: number, o: any) => sum + (o.subtotal || o.totalAmount), 0).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                <span style={{ color: 'var(--secondary)' }}>Tax Collected:</span>
+                <span style={{ fontWeight: '700', color: '#f59e0b' }}>
+                  ₹{salesData.reduce((sum: number, o: any) => sum + (o.taxAmount || 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem' }}>
+                <span style={{ color: 'var(--secondary)' }}>Discounts:</span>
+                <span style={{ fontWeight: '700', color: '#ef4444' }}>
+                  -₹{salesData.reduce((sum: number, o: any) => sum + (o.discountAmount || 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                <span style={{ fontWeight: '600' }}>Net Earnings:</span>
+                <span style={{ fontWeight: '800', color: '#10b981', fontSize: '1.1rem' }}>
+                  ₹{salesData.reduce((sum: number, o: any) => sum + o.totalAmount, 0).toLocaleString()}
                 </span>
               </div>
             </div>

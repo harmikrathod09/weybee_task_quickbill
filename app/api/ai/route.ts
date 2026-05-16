@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     ).join('\n');
 
     const orderListContext = orders.map((o: any) => 
-      `- Invoice #${o.invoiceNumber} | Date: ${new Date(o.createdAt).toLocaleDateString()} | Total: ₹${o.totalAmount} | Status: ${o.status} | Items: ${o.items.map((i:any) => `${i.quantity}x ${i.name}`).join(', ')}`
+      `- Invoice #${o.invoiceNumber} | Date: ${new Date(o.createdAt).toLocaleDateString()} | Subtotal: ₹${o.subtotal || o.totalAmount} | Tax: ₹${o.taxAmount || 0} | Discount: ₹${o.discountAmount || 0} | Total: ₹${o.totalAmount} | Status: ${o.status} | Items: ${o.items.map((i:any) => `${i.quantity}x ${i.name}`).join(', ')}`
     ).join('\n');
 
     const systemContext = `You are QuickBill AI. Your SOLE purpose is to help the owner with the QuickBill POS system and their store.

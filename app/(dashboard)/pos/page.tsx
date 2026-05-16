@@ -446,17 +446,19 @@ export default function POSPage() {
             bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.8)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             zIndex: 2000,
-            padding: '2rem'
+            padding: '2rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
           }}
         >
           <div 
             id="pos-print-modal-content" 
             className="card animate-fade-in" 
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '0' }}
+            style={{ width: '100%', maxWidth: '600px', padding: '0', marginBottom: '2rem' }}
           >
             <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>
@@ -508,8 +510,8 @@ export default function POSPage() {
                       <span>₹{orderSuccess.subtotal?.toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.875rem', color: '#dc2626' }}>
-                      <span>Discount ({orderSuccess.discountAmount > 0 ? ((orderSuccess.discountAmount / orderSuccess.subtotal) * 100).toFixed(0) : 0}%):</span>
-                      <span>-₹{orderSuccess.discountAmount?.toFixed(2)}</span>
+                      <span>Discount ({(orderSuccess.subtotal > 0 && orderSuccess.discountAmount > 0) ? ((orderSuccess.discountAmount / orderSuccess.subtotal) * 100).toFixed(0) : 0}%):</span>
+                      <span>-₹{(orderSuccess.discountAmount || 0).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem' }}>
                       <span>GST:</span>

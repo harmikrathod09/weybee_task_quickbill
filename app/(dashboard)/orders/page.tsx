@@ -306,13 +306,15 @@ export default function OrdersPage() {
             bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.8)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             zIndex: 2000,
-            padding: '2rem'
+            padding: '2rem 1rem',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain'
           }}
         >
-          <div id="print-modal-content" className="card animate-fade-in" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '0' }}>
+          <div id="print-modal-content" className="card animate-fade-in" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px', padding: '0', marginBottom: '2rem' }}>
             <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontWeight: '800' }}>Order Invoice</h2>
               <button 
@@ -362,9 +364,9 @@ export default function OrdersPage() {
                   <div style={{ width: '220px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.875rem' }}>
                       <span>Subtotal:</span>
-                      <span>₹{(selectedOrder.subtotal || selectedOrder.totalAmount).toFixed(2)}</span>
+                      <span>₹{(selectedOrder.subtotal !== undefined ? selectedOrder.subtotal : selectedOrder.totalAmount).toFixed(2)}</span>
                     </div>
-                    {selectedOrder.discountAmount > 0 && (
+                    {selectedOrder.discountAmount > 0 && selectedOrder.subtotal > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.875rem', color: '#dc2626' }}>
                         <span>Discount ({((selectedOrder.discountAmount / selectedOrder.subtotal) * 100).toFixed(0)}%):</span>
                         <span>-₹{selectedOrder.discountAmount.toFixed(2)}</span>

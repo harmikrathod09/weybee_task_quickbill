@@ -7,9 +7,17 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const totalSales = await Order.aggregate([
+    const financialStats = await Order.aggregate([
       { $match: { status: 'confirmed' } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      { 
+        $group: { 
+          _id: null, 
+          totalRevenue: { $sum: '$subtotal' },
+          totalTax: { $sum: '$taxAmount' },
+          totalDiscount: { $sum: '$discountAmount' },
+          totalEarnings: { $sum: '$totalAmount' }
+        } 
+      }
     ]);
 
     const orderCount = await Order.countDocuments({ status: 'confirmed' });
@@ -20,13 +28,29 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .limit(5);
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const chartSales = await Order.find({ 
+    const dailySales = await Order.find({ 
       status: 'confirmed',
-      createdAt: { $gte: sevenDaysAgo }
-    }).select('totalAmount createdAt');
+      createdAt: { $gte: thirtyDaysAgo }
+    }).select('subtotal totalAmount createdAt');
+
+    const monthlySales = await Order.aggregate([
+      { $match: { status: 'confirmed' } },
+      {
+        $group: {
+          _id: { 
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          revenue: { $sum: "$subtotal" },
+          earnings: { $sum: "$totalAmount" }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 6 }
+    ]);
 
     const stockLevels = await Product.find({})
       .select('name stock sku')
@@ -34,12 +58,16 @@ export async function GET() {
       .limit(10);
 
     return NextResponse.json({
-      totalSales: totalSales[0]?.total || 0,
+      totalSales: financialStats[0]?.totalEarnings || 0,
+      totalRevenue: financialStats[0]?.totalRevenue || 0,
+      totalTax: financialStats[0]?.totalTax || 0,
+      totalDiscount: financialStats[0]?.totalDiscount || 0,
       orderCount,
       productCount,
       lowStockCount,
       recentSales,
-      chartSales,
+      dailySales,
+      monthlySales,
       stockLevels
     });
   } catch (error: any) {
